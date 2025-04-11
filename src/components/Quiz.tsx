@@ -19,16 +19,19 @@ const Quiz: React.FC = () => {
     selectWeek,
     answerQuestion,
     resetQuiz,
+    setCurrentQuestion,
   } = useQuiz();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
   const isMobile = useIsMobile();
   const { theme } = useTheme();
 
   useEffect(() => {
     setSelectedOption(null);
     setShowAnswer(false);
+    
   }, [currentQuestion]);
 
   if (!selectedSubject || !selectedWeek) return null;
@@ -42,18 +45,19 @@ const Quiz: React.FC = () => {
   const question = week.questions[currentQuestion - 1];
   const isAnswered = userProgress[selectedSubject]?.[selectedWeek]?.answered.includes(question.id);
   const isCorrect = userProgress[selectedSubject]?.[selectedWeek]?.correct.includes(question.id);
+  const userAnswerIndex = userProgress[selectedSubject]?.[selectedWeek]?.userAnswers?.[question.id];
   
   const correctAnswers = userProgress[selectedSubject]?.[selectedWeek]?.correct.length || 0;
   const totalAnswered = userProgress[selectedSubject]?.[selectedWeek]?.answered.length || 0;
 
   const handleOptionClick = (optionIndex: number) => {
-    if (showAnswer) return;
+    if (showAnswer || reviewMode) return;
     
     setSelectedOption(optionIndex);
     setShowAnswer(true);
     
     const correct = optionIndex === question.correctOption;
-    answerQuestion(selectedSubject, selectedWeek, question.id, correct);
+    answerQuestion(selectedSubject, selectedWeek, question.id, correct, optionIndex);
     
     setTimeout(() => {
       if (currentQuestion < 10) {
@@ -66,6 +70,7 @@ const Quiz: React.FC = () => {
 
   const handleNextWeek = () => {
     setShowCompletionDialog(false);
+    setReviewMode(false);
     const nextWeekId = selectedWeek + 1;
     if (subject.weeks.find(w => w.id === nextWeekId)) {
       selectWeek(nextWeekId);
@@ -80,15 +85,31 @@ const Quiz: React.FC = () => {
     prevQuestion();
   };
 
+  const handleReviewAnswers = () => {
+    setShowCompletionDialog(false);
+    setReviewMode(true);
+    // Reset to first question without infinite loop
+    setCurrentQuestion(1);
+  };
+
   const getOptionColor = (optionIndex: number) => {
-    if (!showAnswer) return "";
-    
-    if (optionIndex === question.correctOption) {
-      return "bg-primary/20 border-primary text-primary-foreground";
+    if (reviewMode) {
+      if (optionIndex === question.correctOption) {
+        return "bg-green-500/20 border-green-500 text-green-600";
+      }
+      if (userAnswerIndex === optionIndex && userAnswerIndex !== question.correctOption) {
+        return "bg-red-500/20 border-red-500 text-red-600";
+      }
+      return "";
     }
     
-    if (optionIndex === selectedOption && optionIndex !== question.correctOption) {
-      return "bg-destructive/20 border-destructive text-destructive-foreground";
+    if (showAnswer) {
+      if (optionIndex === question.correctOption) {
+        return "bg-green-500/20 border-green-500 text-green-600";
+      }
+      if (optionIndex === selectedOption && optionIndex !== question.correctOption) {
+        return "bg-red-500/20 border-red-500 text-red-600";
+      }
     }
     
     return "";
@@ -101,7 +122,10 @@ const Quiz: React.FC = () => {
           <Button
             variant="outline"
             className="flex items-center space-x-2 border-border text-foreground hover:bg-secondary"
-            onClick={() => selectWeek(null)}
+            onClick={() => {
+              setReviewMode(false);
+              selectWeek(null);
+            }}
           >
             <ArrowLeft size={16} />
             <span className={isMobile ? "hidden" : "inline"}>Back to Weeks</span>
@@ -109,6 +133,7 @@ const Quiz: React.FC = () => {
           
           <div className="text-foreground font-medium truncate max-w-[200px] md:max-w-none">
             {subject.name} - {week.title}
+            {reviewMode && " (Review Mode)"}
           </div>
         </div>
 
@@ -123,14 +148,14 @@ const Quiz: React.FC = () => {
           <div className="p-4 lg:p-6">
             <div className="flex justify-between items-center mb-4 lg:mb-6">
               <h3 className="text-foreground font-medium">Question {currentQuestion} of 10</h3>
-              {isAnswered && (
+              {(isAnswered || reviewMode) && (
                 <div className="flex items-center">
                   {isCorrect ? (
-                    <span className="flex items-center text-primary text-sm">
+                    <span className="flex items-center text-green-600 text-sm">
                       <CheckCircle size={16} className="mr-1" /> Correct
                     </span>
                   ) : (
-                    <span className="flex items-center text-destructive text-sm">
+                    <span className="flex items-center text-red-600 text-sm">
                       <XCircle size={16} className="mr-1" /> Incorrect
                     </span>
                   )}
@@ -153,19 +178,32 @@ const Quiz: React.FC = () => {
                   <button
                     key={index}
                     className={`w-full text-left p-3 lg:p-4 border rounded-lg transition-all ${
-                      selectedOption === index
+                      selectedOption === index && !showAnswer
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     } ${getOptionColor(index)}`}
                     onClick={() => handleOptionClick(index)}
-                    disabled={showAnswer}
+                    disabled={showAnswer || reviewMode}
                   >
                     <div className="flex items-start">
-                      <span className="w-6 h-6 rounded-full border border-muted-foreground/50 flex items-center justify-center mr-3 flex-shrink-0">
+                      <span className={`w-6 h-6 rounded-full border flex items-center justify-center mr-3 flex-shrink-0 ${
+                        showAnswer || reviewMode
+                          ? index === question.correctOption
+                            ? "border-green-500 bg-green-500/10"
+                            : selectedOption === index && index !== question.correctOption
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-muted-foreground/50"
+                          : "border-muted-foreground/50"
+                      }`}>
                         {String.fromCharCode(65 + index)}
                       </span>
                       <span>{option}</span>
                     </div>
+                    {reviewMode && userAnswerIndex === index && (
+                      <div className="text-xs mt-2 text-muted-foreground">
+                        (Your choice)
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -181,12 +219,29 @@ const Quiz: React.FC = () => {
                 <ArrowLeft size={16} className="mr-2" /> Previous
               </Button>
               
-              {currentQuestion === 10 && totalAnswered === 10 && (
+              {currentQuestion === 10 && (totalAnswered === 10 || reviewMode) && (
+  <Button
+    onClick={() => {
+      if (reviewMode) {
+        setShowCompletionDialog(true); // Show completion dialog when exiting review
+        setReviewMode(false); // Exit review mode
+      } else {
+        setShowCompletionDialog(true); // Normal finish quiz flow
+      }
+    }}
+    className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center"
+  >
+    {reviewMode ? "Exit Review" : "Finish Quiz"}
+  </Button>
+)}
+              {currentQuestion < 10 && (
                 <Button
-                  onClick={() => setShowCompletionDialog(true)}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center"
+                  variant="outline"
+                  onClick={nextQuestion}
+                  disabled={!isAnswered && !reviewMode}
+                  className="flex items-center border-border hover:bg-secondary"
                 >
-                  Finish Quiz
+                  Next <ArrowLeft size={16} className="ml-2 transform rotate-180" />
                 </Button>
               )}
             </div>
@@ -203,11 +258,18 @@ const Quiz: React.FC = () => {
                     ? "bg-primary"
                     : userProgress[selectedSubject]?.[selectedWeek]?.answered.includes(index + 1)
                     ? userProgress[selectedSubject]?.[selectedWeek]?.correct.includes(index + 1)
-                      ? "bg-primary/70"
-                      : "bg-destructive/70"
+                      ? "bg-green-500"
+                      : "bg-red-500"
                     : "bg-muted"
                 }`}
                 whileHover={{ scale: 1.2 }}
+                onClick={() => {
+                  if (reviewMode || userProgress[selectedSubject]?.[selectedWeek]?.answered.includes(index + 1)) {
+                    while (currentQuestion < index + 1) nextQuestion();
+                    while (currentQuestion > index + 1) prevQuestion();
+                  }
+                }}
+                style={{ cursor: (reviewMode || isAnswered) ? "pointer" : "default" }}
               ></motion.div>
             ))}
           </div>
@@ -239,24 +301,23 @@ const Quiz: React.FC = () => {
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowCompletionDialog(false)}
-              className="flex-1 border-border hover:bg-secondary"
-            >
-              Review Answers
-            </Button>
-            <Button 
-              onClick={handleNextWeek}
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Next Week
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Button 
+          variant="outline" 
+          onClick={handleReviewAnswers}
+          className="flex-1 border-border hover:bg-secondary"
+        >
+          Review Answers
+        </Button>
+        <Button 
+          onClick={handleNextWeek}
+          className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          {subject.weeks.some(w => w.id === selectedWeek + 1) ? 'Next Week' : 'Finish'}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</div>
   );
-};
-
+}
 export default Quiz;

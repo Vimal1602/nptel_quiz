@@ -80,9 +80,13 @@ const WeekSelection: React.FC = () => {
                   <span>{answered}/10 answered</span>
                   <span>{correct}/{answered || 0} correct</span>
                 </div>
+                
               </motion.div>
             );
           })}
+          <div className="mb-16 text-sm text-muted-foreground">
+
+</div>
         </div>
       </div>
     </div>

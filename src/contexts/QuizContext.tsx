@@ -35,9 +35,9 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return savedProgress ? JSON.parse(savedProgress) : getInitialUserProgress();
   });
 
-  useEffect(() => {
-    localStorage.setItem("quizProgress", JSON.stringify(userProgress));
-  }, [userProgress]);
+  // useEffect(() => {
+  //   localStorage.setItem("quizProgress", JSON.stringify(userProgress));
+  // }, [userProgress]);
 
   const selectSubject = (subjectId: string) => {
     setSelectedSubject(subjectId);

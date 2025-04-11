@@ -40,7 +40,7 @@ const SubjectSelection: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-12"
       >
-        <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+        <h1 className="text-3xl md:text-4xl font-bold text-black dark:text-primary-foreground mb-4">
           Choose Your Subject
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">

@@ -3,7 +3,7 @@ import { Github, Linkedin, Mail } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="w-full bg-secondary/30 dark:bg-background text-foreground dark:text-foreground">
+    <footer className="w-full bg-secondary/30 dark:bg-background text-foreground dark:border-t dark:text-foreground">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
@@ -11,12 +11,12 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground max-w-md">
               Practice NPTEL questions on Conservation Economics and Forest
               Management. Prepare for your exams with our comprehensive
-              collection of questions.
+              collection of questions. Connect with me if you have any queries.
             </p>
           </div>
 
           <div className="md:text-right">
-            <h3 className="text-sm font-light mb-2">Meet the Developer</h3>
+            <h3 className="text-sm font-light mb-2">Built by</h3>
             <div className="flex flex-col space-y-2 md:items-end">
               <p className="font-semibold">Vimal M</p>
               <p className="text-sm text-muted-foreground">
@@ -50,7 +50,6 @@ const Footer = () => {
           </div>
         </div>
         <div className="border-t border-border/50 mt-8 pt-16 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Nptel Swayam Quiz. All rights reserved.
         </div>
       </div>
     </footer>
